@@ -1,0 +1,61 @@
+version: '3.9'
+
+services:
+  mongo:
+    image: mongo
+    restart: always
+    ports:
+      - 27017:27017
+    expose:
+      - 27017
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    networks:
+      - database
+      - backend
+
+  mongo-express:
+    image: mongo-express
+    restart: always
+    ports:
+      - 8081:8081
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: example
+      ME_CONFIG_MONGODB_URL: mongodb://root:example@mongo:27017/
+    depends_on:
+      - mongo
+    networks:
+      - database
+
+  redis:
+    image: redis:6.2.6
+    volumes:
+      - ./redis.conf:/usr/local/etc/redis/redis.conf
+    restart: always
+    ports:
+      - 6379:6379
+    expose:
+      - 6379
+    command: redis-server /usr/local/etc/redis/redis.conf
+    networks:
+      - backend
+
+  # server:
+  #   build: .
+  #   ports:
+  #     - '3001:3001'
+  #   volumes:
+  #     - ./src:/app/src
+  #     - /app/node_modules
+  #   depends_on:
+  #     - mongo
+  #   networks:
+  #     - backend
+  #   stdin_open: true
+  #   tty: true
+
+networks:
+  database:
+  backend:
