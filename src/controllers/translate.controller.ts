@@ -17,7 +17,8 @@ export async function translate(ctx: Context, next: Next) {
 
       ctx.response.body = { data: cachedText }
       ctx.response.status = StatusCodes.OK
-      return
+
+      return await next()
     }
   } catch (error) {
     ctx.response.body = error
