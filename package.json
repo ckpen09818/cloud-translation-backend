@@ -27,6 +27,7 @@
     "@types/koa-logger": "^3.1.2",
     "@types/koa-router": "^7.4.4",
     "@types/koa__cors": "^3.3.0",
+    "@types/mongoose": "^5.11.97",
     "@types/node": "^16.11.39",
     "@typescript-eslint/eslint-plugin": "^5.27.1",
     "@typescript-eslint/parser": "^5.27.1",

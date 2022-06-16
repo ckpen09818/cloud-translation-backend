@@ -7,7 +7,7 @@ import { v2 } from '@google-cloud/translate'
 
 const googleTranslateApi = new v2.Translate()
 
-export async function translateText(text: string, target: string) {
+export async function translateText(text: string, target: ISO_639_1Code) {
   const [translations] = await googleTranslateApi.translate(text, target)
   return translations
 }

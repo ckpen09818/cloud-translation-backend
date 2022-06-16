@@ -1,6 +1,5 @@
 FROM node:16
 
-# RUN curl -fsSL https://get.pnpm.io/install.sh | bash -
 RUN npm install -g pnpm
 
 RUN mkdir -p /app

@@ -15,7 +15,7 @@ export async function redisConnection() {
 
 export async function dbConnection() {
   await connect(process.env.DB_URL, {
-    dbName: 'dictionary',
+    dbName: 'translation',
     user: process.env.DB_USER,
     pass: process.env.DB_PASSWORD,
     autoIndex: process.env.NODE_ENV !== 'development',

@@ -1,6 +1,6 @@
 import { StatusCodes } from 'http-status-codes'
 import { redisClient } from '../configs/dbConnection'
-import DictionaryCollection from '../modules/Dictionary'
+import TranslationCollection from '../modules/Translation'
 
 import type { Context, Next } from 'koa'
 
@@ -22,13 +22,15 @@ export async function getSearchHistory(ctx: Context, next: Next) {
     if (cursor) {
       // TODO: decrypted
       decryptedCursor = cursor
-      collection = await DictionaryCollection.find({
+      collection = await TranslationCollection.find({
         _id: { $gte: decryptedCursor },
       })
         .limit(parseInt(pageSize) + 1)
         .exec()
     } else {
-      collection = await DictionaryCollection.find().limit(parseInt(pageSize) + 1)
+      collection = await TranslationCollection.find()
+        .limit(parseInt(pageSize) + 1)
+        .exec()
     }
 
     redisClient.set(redisKey, JSON.stringify(collection))
