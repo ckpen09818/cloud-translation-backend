@@ -1,5 +1,5 @@
 import Router from 'koa-router'
-import { translate, getSupportLanguages, getDetectLanguage } from '../controllers/translation.controller'
+import { translate, getSupportLanguages, detectLanguage } from '../controllers/translation.controller'
 
 const router = new Router({
   prefix: '/language',
@@ -7,6 +7,6 @@ const router = new Router({
 
 router.get('/list/:lan', getSupportLanguages)
 router.post('/translate', translate)
-router.post('/detect', getDetectLanguage)
+router.post('/detect', detectLanguage)
 
 export default router

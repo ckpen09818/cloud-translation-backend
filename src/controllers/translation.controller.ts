@@ -1,4 +1,4 @@
-import { detectLanguage, listLanguages, listLanguagesWithTarget, translateText } from '../utils/googleTranslateApi'
+import googleTranslationApi from '../utils/googleTranslateApi'
 import { StatusCodes } from 'http-status-codes'
 import TranslationCollection from '../modules/Translation'
 import { redisClient } from '../configs/dbConnection'
@@ -37,7 +37,7 @@ export async function translate(ctx: Context, next: Next) {
     if (existingText) {
       translatedText = existingText.text
     } else {
-      translatedText = await translateText(text, translateTo)
+      translatedText = await googleTranslationApi.translateText(text, translateTo)
 
       await TranslationCollection.create(
         { originalText: text, text: translatedText, translateTo, translateFrom },
@@ -66,9 +66,9 @@ export async function getSupportLanguages(ctx: Context, next: Next) {
     let resp: LanguageResult[]
 
     if (lan) {
-      resp = await listLanguagesWithTarget(lan)
+      resp = await googleTranslationApi.listLanguagesWithTarget(lan)
     } else {
-      resp = await listLanguages()
+      resp = await googleTranslationApi.listLanguages()
     }
 
     ctx.response.body = { data: resp }
@@ -80,11 +80,11 @@ export async function getSupportLanguages(ctx: Context, next: Next) {
   await next()
 }
 
-export async function getDetectLanguage(ctx: Context, next: Next) {
+export async function detectLanguage(ctx: Context, next: Next) {
   const { text } = ctx.request.query as { text: string }
 
   try {
-    const resp = await detectLanguage(text)
+    const resp = await googleTranslationApi.detectLanguage(text)
     ctx.response.body = { data: resp }
     ctx.response.status = StatusCodes.OK
   } catch (error) {
