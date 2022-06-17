@@ -1,59 +1,74 @@
 import googleTranslationApi from '../utils/googleTranslateApi'
-import { StatusCodes } from 'http-status-codes'
-import TranslationCollection from '../modules/Translation'
+import TranslationCollection, { Translation } from '../modules/Translation'
 import { redisClient } from '../configs/dbConnection'
+import serverResponse from '@/utils/responses'
 
 import type { Context, Next } from 'koa'
 import type { LanguageResult } from '@google-cloud/translate/build/src/v2'
+import messages from '@/configs/messages'
+
+const createRedisKey = (text: string, translateTo: ISO_639_1Code) => `text:${text}:${translateTo}`
 
 type TranslateQuery = {
   text: string
   translateTo: ISO_639_1Code
   translateFrom: ISO_639_1Code
 }
+type ResponseTranslationData = Pick<Translation, 'saved' | 'text' | 'translateTo'>
 export async function translate(ctx: Context, next: Next) {
   //TODO: add validation
   const { text, translateTo, translateFrom } = ctx.request.query as TranslateQuery
-
-  const redisKey = `text:${text}:${translateTo}`
+  const redisKey = createRedisKey(text, translateTo)
 
   try {
-    const cachedText = await redisClient.get(redisKey)
-    if (cachedText) {
+    const cachedTranslation = await redisClient.get(redisKey)
+    if (cachedTranslation) {
       TranslationCollection.updateOne({ originalText: text, translateTo }, { $inc: { impressions: 1 } }).exec()
 
-      ctx.response.body = { data: cachedText }
-      ctx.response.status = StatusCodes.OK
+      serverResponse.sendSuccess(
+        ctx.response,
+        messages.SUCCESSFUL,
+        JSON.parse(cachedTranslation) as ResponseTranslationData,
+      )
+
       return await next()
     }
   } catch (error) {
-    ctx.response.body = error
+    serverResponse.sendError(ctx.response, messages.BAD_REQUEST)
   }
 
   try {
-    const existingText = await TranslationCollection.findOne({ originalText: text, translateTo })
+    const existingTranslation = await TranslationCollection.findOne({ originalText: text, translateTo })
 
-    let translatedText: string
-    if (existingText) {
-      translatedText = existingText.text
+    let responseData: ResponseTranslationData
+    if (existingTranslation) {
+      const { text, translateTo, saved } = existingTranslation
+      responseData = { text, translateTo, saved }
     } else {
-      translatedText = await googleTranslationApi.translateText(text, translateTo)
+      const translatedText = await googleTranslationApi.translateText(text, translateTo)
+      try {
+        const newTranslation = await TranslationCollection.create({
+          originalText: text,
+          text: translatedText,
+          translateTo,
+          translateFrom,
+        })
 
-      await TranslationCollection.create(
-        { originalText: text, text: translatedText, translateTo, translateFrom },
-        (err) => {
-          if (err) {
-            console.log('create document err', err)
-          }
-          redisClient.set(redisKey, translatedText)
-        },
-      )
+        responseData = {
+          text: newTranslation.text,
+          translateTo: newTranslation.translateTo,
+          saved: newTranslation.saved,
+        }
+
+        redisClient.set(redisKey, JSON.stringify(responseData))
+      } catch (error) {
+        throw new Error('create new translation error!', error)
+      }
     }
 
-    ctx.response.status = StatusCodes.OK
-    ctx.response.body = { data: translatedText }
+    serverResponse.sendSuccess(ctx.response, messages.SUCCESSFUL, responseData)
   } catch (error) {
-    ctx.response.body = error
+    serverResponse.sendError(ctx.response, messages.BAD_REQUEST)
   }
 
   await next()
@@ -71,10 +86,9 @@ export async function getSupportLanguages(ctx: Context, next: Next) {
       resp = await googleTranslationApi.listLanguages()
     }
 
-    ctx.response.body = { data: resp }
-    ctx.response.status = StatusCodes.OK
+    serverResponse.sendSuccess(ctx.response, messages.SUCCESSFUL, resp)
   } catch (error) {
-    ctx.response.body = error
+    serverResponse.sendError(ctx.response, messages.BAD_REQUEST)
   }
 
   await next()
@@ -85,10 +99,37 @@ export async function detectLanguage(ctx: Context, next: Next) {
 
   try {
     const resp = await googleTranslationApi.detectLanguage(text)
-    ctx.response.body = { data: resp }
-    ctx.response.status = StatusCodes.OK
+    serverResponse.sendSuccess(ctx.response, messages.SUCCESSFUL, resp)
   } catch (error) {
-    ctx.response.body = error
+    serverResponse.sendError(ctx.response, messages.BAD_REQUEST)
+  }
+
+  await next()
+}
+
+// TODO: save function
+export async function changeSaveState(ctx: Context, next: Next) {
+  const { text, translateTo, saved } = ctx.request.body as { text: string; translateTo: ISO_639_1Code; saved: boolean }
+  const redisKey = createRedisKey(text, translateTo)
+
+  try {
+    await TranslationCollection.findOneAndUpdate({ text, translateTo }, { $set: { saved } })
+    const cachedTranslation = await redisClient.get(redisKey)
+    if (cachedTranslation) {
+      const translation = JSON.parse(cachedTranslation) as ResponseTranslationData
+      translation.saved = saved
+      redisClient.set(redisKey, JSON.stringify(translation))
+    } else {
+      const newTranslation: ResponseTranslationData = {
+        text,
+        translateTo,
+        saved,
+      }
+      redisClient.set(redisKey, JSON.stringify(newTranslation))
+    }
+    serverResponse.sendSuccess(ctx.response, messages.SUCCESSFUL)
+  } catch (error) {
+    serverResponse.sendError(ctx.response, messages.BAD_REQUEST)
   }
 
   await next()
