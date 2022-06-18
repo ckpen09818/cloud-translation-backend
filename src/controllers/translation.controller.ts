@@ -107,13 +107,13 @@ export async function detectLanguage(ctx: Context, next: Next) {
   await next()
 }
 
-// TODO: save function
 export async function changeSaveState(ctx: Context, next: Next) {
   const { text, translateTo, saved } = ctx.request.body as { text: string; translateTo: ISO_639_1Code; saved: boolean }
   const redisKey = createRedisKey(text, translateTo)
 
   try {
-    await TranslationCollection.findOneAndUpdate({ text, translateTo }, { $set: { saved } })
+    await TranslationCollection.findOneAndUpdate({ originalText: text, translateTo }, { $set: { saved } }).exec()
+
     const cachedTranslation = await redisClient.get(redisKey)
     if (cachedTranslation) {
       const translation = JSON.parse(cachedTranslation) as ResponseTranslationData
