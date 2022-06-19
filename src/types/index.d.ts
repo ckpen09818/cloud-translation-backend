@@ -116,3 +116,4 @@ interface Dictionary<T> {
 }
 
 type NumericString = `${number}`
+type PageSize = '10' | '20' | '50'

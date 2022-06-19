@@ -9,7 +9,7 @@ export interface Translation {
   saved: boolean
 }
 
-const REMOVE_PROPERTYS = '_id _v createdAt updatedAt'
+const REMOVE_PROPERTIES = '_id createdAt updatedAt'
 const translationSchema = new Schema<Translation>(
   {
     originalText: { type: String, required: true },
@@ -30,10 +30,9 @@ const translationSchema = new Schema<Translation>(
     timestamps: true,
     toObject: {
       transform: function (doc, ret) {
-        REMOVE_PROPERTYS.split(' ').forEach((key) => {
+        REMOVE_PROPERTIES.split(' ').forEach((key) => {
           delete ret[key]
         })
-
         return ret
       },
     },
