@@ -114,3 +114,5 @@ type ISO_639_1Code =
 interface Dictionary<T> {
   [key: string]: T
 }
+
+type NumericString = `${number}`

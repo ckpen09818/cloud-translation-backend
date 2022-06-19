@@ -9,6 +9,7 @@ export interface Translation {
   saved: boolean
 }
 
+const REMOVE_PROPERTYS = '_id _v createdAt updatedAt'
 const translationSchema = new Schema<Translation>(
   {
     originalText: { type: String, required: true },
@@ -27,8 +28,18 @@ const translationSchema = new Schema<Translation>(
   {
     autoCreate: true,
     timestamps: true,
+    toObject: {
+      transform: function (doc, ret) {
+        REMOVE_PROPERTYS.split(' ').forEach((key) => {
+          delete ret[key]
+        })
+
+        return ret
+      },
+    },
   },
 )
 
 const TranslationCollection = mongoose.model('Translation', translationSchema)
+
 export default TranslationCollection
