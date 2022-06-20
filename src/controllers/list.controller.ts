@@ -3,6 +3,7 @@ import serverResponse from '@/utils/responses'
 import messages from '@/configs/messages'
 
 import type { Context, Next } from 'koa'
+import { type Query } from 'mongoose'
 
 async function countAllTranslation(query = {}) {
   try {
@@ -13,7 +14,8 @@ async function countAllTranslation(query = {}) {
   }
 }
 
-function getTranslationList(query = {}) {
+type QuerySortArgs = Parameters<Query<any, any>['sort']>[0]
+function getTranslationList(query = {}, sortQuery: QuerySortArgs = { updatedAt: -1 }) {
   return async (ctx: Context, next: Next) => {
     let { pageSize = 20, page = 1 } = ctx.request.query as {
       pageSize: PageSize
@@ -24,7 +26,7 @@ function getTranslationList(query = {}) {
 
     try {
       const collection = await TranslationCollection.find(query)
-        .sort({ updatedAt: -1 })
+        .sort(sortQuery)
         .skip(page > 0 ? (page - 1) * pageSize : 0)
         .limit(pageSize + 1)
         .exec()
@@ -55,5 +57,7 @@ function getTranslationList(query = {}) {
     await next()
   }
 }
+
 export const getSavedTranslation = getTranslationList({ saved: true })
-export const getTranslationHistory = getTranslationList({})
+export const getHistoryTranslation = getTranslationList({})
+export const getHotTranslation = getTranslationList({}, { impressions: -1 })

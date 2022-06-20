@@ -23,7 +23,7 @@ export async function translate(ctx: Context, next: Next) {
   try {
     const cachedTranslation = await redisClient.get(redisKey)
     if (cachedTranslation) {
-      TranslationCollection.updateOne({ originalText: text, translateTo }, { $inc: { impressions: 1 } }).exec()
+      await TranslationCollection.updateOne({ originalText: text, translateTo }, { $inc: { impressions: 1 } }).exec()
 
       serverResponse.sendSuccess(
         ctx.response,
@@ -43,6 +43,7 @@ export async function translate(ctx: Context, next: Next) {
     let responseData: ResponseTranslationData
     if (existingTranslation) {
       const { text, translateTo, saved } = existingTranslation
+      await TranslationCollection.updateOne({ originalText: text, translateTo }, { $inc: { impressions: 1 } }).exec()
       responseData = { text, translateTo, saved }
     } else {
       const translatedText = await googleTranslationApi.translateText(text, translateTo)
@@ -59,13 +60,11 @@ export async function translate(ctx: Context, next: Next) {
           translateTo: newTranslation.translateTo,
           saved: newTranslation.saved,
         }
-
-        redisClient.set(redisKey, JSON.stringify(responseData))
       } catch (error) {
         throw new Error('create new translation error!', error)
       }
     }
-
+    redisClient.set(redisKey, JSON.stringify(responseData))
     serverResponse.sendSuccess(ctx.response, messages.SUCCESSFUL, responseData)
   } catch (error) {
     serverResponse.sendError(ctx.response, messages.BAD_REQUEST)

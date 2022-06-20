@@ -1,10 +1,11 @@
 import Router from 'koa-router'
-import { getSavedTranslation, getTranslationHistory } from '../controllers/list.controller'
+import { getSavedTranslation, getHistoryTranslation, getHotTranslation } from '../controllers/list.controller'
 const listRouter = new Router()
 
 listRouter.prefix('/list')
 
-listRouter.get('/translationHistory', getTranslationHistory)
+listRouter.get('/translationHistory', getHistoryTranslation)
 listRouter.get('/saved', getSavedTranslation)
+listRouter.get('/hot', getHotTranslation)
 
 export default listRouter
